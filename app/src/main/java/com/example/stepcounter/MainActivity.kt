@@ -13,24 +13,44 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.text.isDigitsOnly
 import com.example.stepcounter.ui.theme.StepCounterTheme
 
-class MainActivity : ComponentActivity(), SensorEventListener{
+class MainActivity : ComponentActivity(), SensorEventListener {
+
 
     private var sensorManager: SensorManager? = null
     private var running = false
     private var totalSteps = 0f
-    private var currentSteps = mutableStateOf(totalSteps)
+    private var currentSteps by mutableStateOf(totalSteps)
 
     private val ACTIVITY_RECOGNITION_REQUEST_CODE = 100
 
@@ -41,10 +61,12 @@ class MainActivity : ComponentActivity(), SensorEventListener{
             StepCounterTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colors.background
+                    modifier = Modifier.fillMaxSize()
                 ) {
+
+
                     Display()
+
                 }
             }
         }
@@ -87,7 +109,7 @@ class MainActivity : ComponentActivity(), SensorEventListener{
 
         if (running) { //get the number of steps taken by the user.
             totalSteps = event!!.values[0]
-            currentSteps.value = totalSteps
+            currentSteps = totalSteps
         }
     }
 
@@ -131,14 +153,91 @@ class MainActivity : ComponentActivity(), SensorEventListener{
             }
         }
     }
-
-    
-
+    @Preview
     @Composable
     fun Display() {
-        Text(text = currentSteps.value.toInt().toString())
+        var goal by rememberSaveable {
+            mutableStateOf(200)
+        }
+        var size by remember {
+            mutableStateOf(IntSize.Zero)
+        }
+        val text = remember { mutableStateOf("") }
+
+        val change: (String) -> Unit = { it ->
+
+            if (it.isDigitsOnly()) {
+                text.value = it
+                if (it.isNotEmpty()) {
+                    goal = text.value.toInt()
+                }
+            }
+        }
+        Box(contentAlignment = Alignment.Center) {
+            OutlinedTextField(
+                modifier = Modifier
+                    .padding(60.dp)
+                    .align(Alignment.TopCenter),
+                //label = "Set your goal",
+                value = text.value,
+                label = {Text("Set your goal")},
+                keyboardOptions = KeyboardOptions.Default.copy(
+
+                    keyboardType = KeyboardType.Number),
+                onValueChange = change
+            )
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(300.dp)
+                    .onSizeChanged {
+                        size = it
+                    }) {
+                Canvas(modifier = Modifier.size(300.dp)) {
+                    drawArc(
+                        startAngle = 0f,
+                        sweepAngle = 360f,
+                        color = Color.DarkGray,
+                        useCenter = false,
+                        size = Size(size.width.toFloat(), size.height.toFloat()),
+                        style = Stroke(40f, cap = StrokeCap.Round)
+                    )
+                }
+                Canvas(modifier = Modifier.size(300.dp)) {
+                    drawArc(
+                        startAngle = -90f,
+                        sweepAngle = 360f * (currentSteps.toInt()) / goal,
+                        color = Color(0xFFBB86FC),
+                        useCenter = false,
+                        size = Size(size.width.toFloat(), size.height.toFloat()),
+                        style = Stroke(40f, cap = StrokeCap.Round)
+                    )
+                }
+                Row {
+                    Text(
+
+                        text = currentSteps.toInt().toString(),
+                        style = TextStyle(fontSize = 60.sp)
+                    )
+                    Text(
+                        modifier = Modifier.padding(top = 40.dp),
+                        text = "/$goal",
+                        style = TextStyle(fontSize = 20.sp)
+                    )
+                }
+            }
+        }
+
     }
+
 }
+
+
+
+
+
+
+
 
 
 
